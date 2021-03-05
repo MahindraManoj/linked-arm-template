@@ -1,0 +1,191 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "existingVnetRg": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the resource group of the virtual network that will be used by the resources mentioned"
+      }
+    },
+    "existingVnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Vnet where the VM will be deployed"
+      }
+    },
+    "existingSubnetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Subnet where the VM will be deployed"
+      }
+    },
+    "availabilitySetName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the availability set."
+      }
+    },
+    "vmNamePrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the VM resource."
+      }
+    },
+    "vmCount": {
+      "type": "int",
+      "metadata": {
+        "description": "Number of VMs to be deployed for this deployment."
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "Admin username for the VM"
+      }
+    },
+    "adminPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Admin password for the VM"
+      }
+    },
+    "dataDiskCount": {
+      "type": "int",
+      "minValue": 2,
+      "maxValue": 5,
+      "metadata": {
+        "description": "Number of dataDisks to be attached per vm."
+      }
+    },
+    "loadBalancerName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the internal load balancer"
+      }
+    },
+    "frontendName": {
+      "type": "string",
+      "metadata": {
+        "description": "description"
+      }
+    },
+    "frontendIPAddress": {
+      "type": "string",
+      "metadata": {
+        "description": "IP address of the load balancer front end."
+      }
+    }
+  },
+  "variables": {
+    "vnetID": "[resourceId(parameters('existingVnetRg'), 'Microsoft.Network/virtualNetworks', parameters('existingVnetName'))]",
+    "subnetID": "[concat(variables('vnetID'),'/subnets/', parameters('existingSubnetName'))]",
+    "backendPoolName": "backend-pool"
+  },
+  "resources": [
+    {
+      "name": "[parameters('availabilitySetName')]",
+      "type": "Microsoft.Compute/availabilitySets",
+      "apiVersion": "2018-10-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "platformUpdateDomainCount": 5,
+        "platformFaultDomainCount": 3
+      },
+      "sku": {
+        "name": "aligned"
+      }
+    },
+    {
+      "name": "loadBalancerTemplate",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2020-06-01",
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "relativePath": "artifacts/loadbalancer/loadbalancerdeploy.json"
+        },
+        "parameters": {
+          "subnetId": "[variables('subnetID')]",
+          "loadBalancerName": "[parameters('loadBalancerName')]",
+          "frontendName": "[parameters('frontendName')]",
+          "frontendIPAddress": "[parameters('frontendIPAddress')]",
+          "backendPoolName": "[variables('backendPoolName')]"
+        }
+      }
+    },     
+    {
+      "name": "[concat(parameters('vmNamePrefix'), copyIndex(1), '-vm', '_nic')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2019-11-01",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'loadBalancerTemplate')]"
+      ],
+      "tags": {
+        "displayName": "networkInterface1"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "subnet": {
+                "id": "[variables('subnetID')]"
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('loadBalancerName'), variables('backendPoolName'))]"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "copy": {
+        "name": "nicCopy",
+        "count": "[parameters('vmCount')]"
+      }
+    },
+    {
+      "name": "virtualMachineTemplate",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2020-06-01",
+      "copy": {
+        "name": "vmCopy",
+        "count": "[parameters('vmCount')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vmNamePrefix'), copyIndex(1), '-vm', '_nic'))]"
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "relativePath": "artifacts/virtualmachine/vmdeploy.json"
+        },
+        "parameters": {
+          "vmName": "[concat(parameters('vmNamePrefix'), copyIndex(1), '-vm')]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]",
+          "dataDiskCount": "[parameters('dataDiskCount')]"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "loadbalancerId": {
+      "type": "string",
+      "value": "[reference('loadbalancerTemplate').outputs.resourceID.value]"
+    },
+    "virtualMachinesId": {
+      "type": "array",
+      "copy": {
+        "count": "[parameters('vmCount')]",
+        "input": {
+          "value": "[reference('virtualMachineTemplate').outputs.resourceID.value]"
+        }
+      }
+    }
+  }
+}
