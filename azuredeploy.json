@@ -164,6 +164,9 @@
       ],
       "properties": {
         "mode": "Incremental",
+        "expressionEvaluationOptions": {
+          "scope": "Inner"
+        },
         "templateLink": {
           "uri": "[variables('vmTemplateURL')]"
         },
