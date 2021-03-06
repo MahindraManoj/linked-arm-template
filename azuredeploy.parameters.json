@@ -26,7 +26,7 @@
         "adminPassword": {
             "value": "" 
         },
-        "numberOfDataDisks": {
+        "dataDiskCount": {
             "value": 0 
         },
         "loadBalancerName": {

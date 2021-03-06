@@ -78,6 +78,9 @@
     }
   },
   "variables": {
+    "_artifactsLocation": "https://github.com/MahindraManoj/linked-arm-template",
+    "lbTemplateURL": "[concat(variables('_artifactsLocation'), '/artifacts/loadbalancer/loadbalancerdeploy.json')]",
+    "vmTemplateURL": "[concat(variables('_artifactsLocation'), '/artifacts/virtualmachine/vmdeploy.json')]",
     "vnetID": "[resourceId(parameters('existingVnetRg'), 'Microsoft.Network/virtualNetworks', parameters('existingVnetName'))]",
     "subnetID": "[concat(variables('vnetID'),'/subnets/', parameters('existingSubnetName'))]",
     "backendPoolName": "backend-pool"
@@ -103,7 +106,7 @@
       "properties": {
         "mode": "Incremental",
         "templateLink": {
-          "relativePath": "artifacts/loadbalancer/loadbalancerdeploy.json"
+          "uri": "[variables('lbTemplateURL')]"
         },
         "parameters": {
           "subnetId": "[variables('subnetID')]",
@@ -157,12 +160,12 @@
         "count": "[parameters('vmCount')]"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('vmNamePrefix'), copyIndex(1), '-vm', '_nic'))]"
+        "nicCopy"
       ],
       "properties": {
         "mode": "Incremental",
         "templateLink": {
-          "relativePath": "artifacts/virtualmachine/vmdeploy.json"
+          "uri": "[variables('vmTemplateURL')]"
         },
         "parameters": {
           "vmName": "[concat(parameters('vmNamePrefix'), copyIndex(1), '-vm')]",
