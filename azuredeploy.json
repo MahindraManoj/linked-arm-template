@@ -78,7 +78,7 @@
     }
   },
   "variables": {
-    "_artifactsLocation": "https://github.com/MahindraManoj/linked-arm-template",
+    "_artifactsLocation": "https://raw.githubusercontent.com/MahindraManoj/linked-arm-template",
     "lbTemplateURL": "[concat(variables('_artifactsLocation'), '/artifacts/loadbalancer/loadbalancerdeploy.json')]",
     "vmTemplateURL": "[concat(variables('_artifactsLocation'), '/artifacts/virtualmachine/vmdeploy.json')]",
     "vnetID": "[resourceId(parameters('existingVnetRg'), 'Microsoft.Network/virtualNetworks', parameters('existingVnetName'))]",
@@ -109,11 +109,21 @@
           "uri": "[variables('lbTemplateURL')]"
         },
         "parameters": {
-          "subnetId": "[variables('subnetID')]",
-          "loadBalancerName": "[parameters('loadBalancerName')]",
-          "frontendName": "[parameters('frontendName')]",
-          "frontendIPAddress": "[parameters('frontendIPAddress')]",
-          "backendPoolName": "[variables('backendPoolName')]"
+          "subnetId": {
+            "value": "[variables('subnetID')]"
+          },
+          "loadBalancerName": {
+            "value": "[parameters('loadBalancerName')]"
+          },
+          "frontendName": {
+            "value": "[parameters('frontendName')]"
+          },
+          "frontendIPAddress": {
+            "value": "[parameters('frontendIPAddress')]"
+          },
+          "backendPoolName": {
+            "value": "[variables('backendPoolName')]"
+          }
         }
       }
     },     
@@ -152,7 +162,7 @@
       }
     },
     {
-      "name": "[concat(parameters('vmNamePrefix'), copyIndex(1), 'vmTemplate')]",
+      "name": "[concat('vmTemplate', copyIndex(1))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-06-01",
       "copy": {
@@ -160,21 +170,33 @@
         "count": "[parameters('vmCount')]"
       },
       "dependsOn": [
+        "[resourceId('Microsoft.Compute/availabilitySets', parameters('availabilitySetName'))]",
         "nicCopy"
       ],
       "properties": {
         "mode": "Incremental",
-        "expressionEvaluationOptions": {
-          "scope": "Inner"
-        },
         "templateLink": {
           "uri": "[variables('vmTemplateURL')]"
         },
         "parameters": {
-          "vmName": "[concat(parameters('vmNamePrefix'), copyIndex(1), '-vm')]",
-          "adminUsername": "[parameters('adminUsername')]",
-          "adminPassword": "[parameters('adminPassword')]",
-          "dataDiskCount": "[parameters('dataDiskCount')]"
+          "vmCount": {
+            "value": "[parameters('vmCount')]"
+          },
+          "vmName": {
+            "value": "[concat(parameters('vmNamePrefix'), copyIndex(1), '-vm')]"
+          },
+          "adminUsername": {
+            "value": "[parameters('adminUsername')]"
+          },
+          "adminPassword": {
+            "value": "[parameters('adminPassword')]"
+          },
+          "dataDiskCount": {
+            "value": "[parameters('dataDiskCount')]"
+          },
+          "availabilitySetName": {
+            "value": "[parameters('availabilitySetName')]"
+          }
         }
       }
     }
@@ -182,14 +204,14 @@
   "outputs": {
     "loadbalancerId": {
       "type": "string",
-      "value": "[reference('loadbalancerTemplate').outputs.resourceID.value]"
+      "value": "[reference('loadbalancerTemplate').outputs.resourceId.value]"
     },
     "virtualMachinesId": {
       "type": "array",
       "copy": {
         "count": "[parameters('vmCount')]",
         "input": {
-          "value": "[reference('virtualMachineTemplate').outputs.resourceID.value]"
+          "value": "[reference(concat('vmTemplate', copyIndex(1))).outputs.resourceId.value]"
         }
       }
     }

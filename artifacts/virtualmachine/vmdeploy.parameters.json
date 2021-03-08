@@ -16,6 +16,9 @@
         },
         "dataDiskCount": {
             "value": 0
+        },
+        "availabilitySetName": {
+            "value": ""
         }
     }
 }

@@ -3,34 +3,34 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "existingVnetRg": {
-            "value": "" 
+            "value": ""
         },
         "existingVnetName": {
-            "value": "" 
+            "value": ""
         },
         "existingSubnetName": {
-            "value": "" 
+            "value": ""
         },
         "availabilitySetName": {
-            "value": "" 
+            "value": ""
         },
         "vmNamePrefix": {
-            "value": "" 
+            "value": ""
         },
         "vmCount": {
-            "value": 0 
+            "value": 0
         },
         "adminUsername": {
-            "value": "" 
+            "value": ""
         },
         "adminPassword": {
-            "value": "" 
+            "value": ""
         },
         "dataDiskCount": {
-            "value": 0 
+            "value": 0
         },
         "loadBalancerName": {
-            "value": "" 
+            "value": ""
         },
         "frontendName": {
             "value": "" 
